@@ -13,16 +13,24 @@ public class WelcomeTest {
     @Test
     public void welcomeToDevOpsTest() {
 
-        ChromeOptions options = new ChromeOptions();
 
-        // Headless mode for GitHub Actions
-        if (System.getenv("CI") != null) {
-            options.addArguments("--headless=new");
-            options.addArguments("--no-sandbox");
-            options.addArguments("--disable-dev-shm-usage");
-        }
+ChromeOptions options = new ChromeOptions();
 
-        WebDriver driver = new ChromeDriver(options);
+if (System.getenv("CI") != null ||
+    System.getenv("DOCKER") != null) {
+
+    options.addArguments("--headless=new");
+    options.addArguments("--no-sandbox");
+    options.addArguments("--disable-dev-shm-usage");
+    options.addArguments("--disable-gpu");
+}
+
+if (System.getenv("DOCKER") != null) {
+    options.setBinary("/usr/bin/chromium");
+}
+
+WebDriver driver = new ChromeDriver(options);
+
 
         try {
 
