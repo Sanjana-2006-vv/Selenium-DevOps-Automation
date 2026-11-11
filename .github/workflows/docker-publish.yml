@@ -1,37 +1,24 @@
 
-name: Selenium Docker CI/CD
+- name: Diagnose Docker Hub Authentication
+  env:
+    DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+    DH_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  run: |
+    if [ -z "$DH_USER" ] || [ -z "$DH_TOKEN" ]; then
+      echo "ERROR: A Docker Hub secret is empty"
+      exit 1
+    fi
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+    if [[ "$DH_USER" =~ [[:space:]] ]] || [[ "$DH_TOKEN" =~ [[:space:]] ]]; then
+      echo "ERROR: A secret contains whitespace"
+      exit 1
+    fi
 
-jobs:
-  docker-publish:
-    name: Build and Push to Docker Hub
-    runs-on: ubuntu-latest
+    echo "Checking Docker Hub credentials..."
+    curl --silent --show-error \
+      --output /tmp/docker-auth.json \
+      --write-out "HTTP status: %{http_code}\n" \
+      --user "$DH_USER:$DH_TOKEN" \
+      "https://auth.docker.io/token?service=registry.docker.io"
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set Up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/selenium-devops-automation:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/selenium-devops-automation:1.0
+    echo "Credential check completed."
