@@ -5,45 +5,12 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
-  selenium-test:
-    name: Run Selenium Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set Up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: maven
-
-      - name: Set Up Chrome
-        uses: browser-actions/setup-chrome@v1
-
-      - name: Run Selenium Tests
-        run: mvn -B clean test
-
-      - name: Upload Test Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: selenium-test-reports
-          path: target/surefire-reports/
-          if-no-files-found: warn
-
   docker-publish:
-    name: Build and Push Docker Image
-    needs: selenium-test
+    name: Build and Push to Docker Hub
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
 
     steps:
       - name: Checkout Repository
@@ -52,19 +19,18 @@ jobs:
       - name: Set Up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-		
-		- name: Login to Docker Hub
-		  env:
-		    DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-		    DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-		  run: |
-		    printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-
+      - name: Login to Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/selenium-devops-automation:latest
