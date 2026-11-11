@@ -15,6 +15,7 @@
     fi
 
     echo "Checking Docker Hub credentials..."
+
     curl --silent --show-error \
       --output /tmp/docker-auth.json \
       --write-out "HTTP status: %{http_code}\n" \
